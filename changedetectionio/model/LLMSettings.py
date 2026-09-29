@@ -6,7 +6,7 @@ Storage stays a plain dict (orjson-serialized). This model is hydrated on read
 (model_validate) and dumped on write (model_dump). WTForms field names match
 the storage field names exactly — no aliases needed.
 """
-from typing import ClassVar, Tuple
+from typing import Any, ClassVar, Dict, Tuple
 
 from pydantic import BaseModel, ConfigDict
 
@@ -52,6 +52,9 @@ class LLMSettings(BaseModel):
     api_base: str = ''
     provider_kind: str = ''
     local_token_multiplier: int = LLM_DEFAULT_LOCAL_TOKEN_MULTIPLIER
+    # Sent with every LLM request, see llm/extras.py.
+    extra_headers: Dict[str, str] = {}
+    extra_body: Dict[str, Any] = {}
 
     tokens_total_cumulative: int = 0
     tokens_this_month: int = 0
@@ -62,6 +65,7 @@ class LLMSettings(BaseModel):
     # Provider-connection fields wiped on /llm/clear and when the model is emptied.
     CONNECTION_FIELDS: ClassVar[Tuple[str, ...]] = (
         'model', 'api_key', 'api_base', 'provider_kind', 'local_token_multiplier',
+        'extra_headers', 'extra_body',
     )
     # Runtime-managed counters — form submissions must never overwrite these.
     PROTECTED_FIELDS: ClassVar[Tuple[str, ...]] = (

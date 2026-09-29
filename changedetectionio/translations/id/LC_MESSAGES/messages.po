@@ -1135,6 +1135,11 @@ msgstr ""
 "lingkungan <code>LLM_MODEL</code> untuk mengonfigurasi melalui formulir ini."
 
 #: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+#, python-format
+msgid "Extra request headers/body are set via %(names)s."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
 msgid "select a provider"
 msgstr "pilih penyedia"
 
@@ -1164,6 +1169,22 @@ msgstr ""
 "%(default)s; tingkatkan jika respons terpotong atau kosong, turunkan (hingga 1x) jika Anda menginginkan batas lebih "
 "ketat pada endpoint berbayar. Berlaku untuk endpoint Ollama dan yang kompatibel dengan OpenAI — penyedia cloud lain "
 "(OpenAI, Anthropic, Gemini) tetap menggunakan batas ketat aslinya."
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid "Extra request headers and body"
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid ""
+"Sent with every AI request, one <code>Name: value</code> per line. For gateways that need a session or routing "
+"header, or a token of their own. Unlike the API key, values are shown on this page. Removed with the provider."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid ""
+"A JSON object merged into every AI request body, for provider-specific options such as turning a model's default "
+"reasoning off."
+msgstr ""
 
 #: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
 msgid "Load available models"
@@ -3800,6 +3821,14 @@ msgstr "URL Dasar API"
 #: changedetectionio/forms.py
 msgid "Token multiplier for local reasoning models"
 msgstr "Pengali token untuk model reasoning lokal"
+
+#: changedetectionio/forms.py
+msgid "Extra request headers"
+msgstr ""
+
+#: changedetectionio/forms.py
+msgid "Extra request body (JSON)"
+msgstr ""
 
 #: changedetectionio/forms.py
 msgid "Default AI Change Summary prompt"

@@ -113,6 +113,12 @@
     {{ _('AI / LLM is configured via environment variables (<code>LLM_MODEL=%(model)s</code>%(api_base)s). Remove the <code>LLM_MODEL</code> environment variable to configure via this form instead.',
          model=llm_config.get('model', '')|e,
          api_base=(', <code>LLM_API_BASE=' ~ (llm_config.get('api_base')|e) ~ '</code>') if llm_config.get('api_base') else '') | safe }}
+    {#- Names only: header values can be credentials. -#}
+    {%- set llm_env_extras = (['LLM_EXTRA_HEADERS'] if llm_config.get('extra_headers') else [])
+                            + (['LLM_EXTRA_BODY'] if llm_config.get('extra_body') else []) -%}
+    {%- if llm_env_extras %}
+    {{ _('Extra request headers/body are set via %(names)s.', names='<code>' ~ llm_env_extras|join('</code>, <code>') ~ '</code>') | safe }}
+    {%- endif %}
   </div>
   {% else %}
 
@@ -155,6 +161,18 @@
       {{ _('Reasoning models (Qwen3, DeepSeek-R1, Gemma 3, etc.) emit chain-of-thought before the final answer. This multiplier scales every <code>max_tokens</code> cap for this endpoint to leave reasoning room. Defaults to %(default)s; raise it if responses come back truncated or empty, lower it (down to 1x) if you want tighter limits on a paid endpoint. Applied to Ollama and OpenAI-compatible endpoints — other cloud providers (OpenAI, Anthropic, Gemini) keep their original tight caps.', default='5x') | safe }}
     </span>
   </div>
+
+  <details id="llm-extras-group" style="margin: 0.5em 0 1em 0;"{% if form.llm.form.extra_headers.data or form.llm.form.extra_body.data or form.llm.form.extra_headers.errors or form.llm.form.extra_body.errors %} open{% endif %}>
+    <summary style="cursor:pointer;">{{ _('Extra request headers and body') }}</summary>
+    <div class="pure-control-group">
+      {{ render_field(form.llm.form.extra_headers) }}
+      <span class="pure-form-message-inline">{{ _('Sent with every AI request, one <code>Name: value</code> per line. For gateways that need a session or routing header, or a token of their own. Unlike the API key, values are shown on this page. Removed with the provider.') | safe }}</span>
+    </div>
+    <div class="pure-control-group">
+      {{ render_field(form.llm.form.extra_body) }}
+      <span class="pure-form-message-inline">{{ _('A JSON object merged into every AI request body, for provider-specific options such as turning a model\'s default reasoning off.') }}</span>
+    </div>
+  </details>
 
   <div class="pure-control-group" id="llm-fetch-group" style="display:none">
     <label></label>
@@ -594,11 +612,19 @@
     if (apiBase.trim()) params.set('api_base', apiBase.trim());
     if (kind.trim())    params.set('provider_kind', kind.trim());
     if (mult.trim())    params.set('local_token_multiplier', mult.trim());
+    // Extras go in the POST body (a header can carry a token; query strings get logged),
+    // always sent so the test uses what the form shows, blank included.
+    const extras = new URLSearchParams();
+    const headersField = document.querySelector('[name="llm-extra_headers"]');
+    const bodyField    = document.querySelector('[name="llm-extra_body"]');
+    if (headersField) extras.set('extra_headers', headersField.value);
+    if (bodyField)    extras.set('extra_body', bodyField.value);
 
     try {
       const resp = await fetch('{{ url_for("settings.llm.llm_test") }}?' + params, {
         method: 'POST',
-        headers: {'X-CSRFToken': csrftoken}
+        headers: {'X-CSRFToken': csrftoken},
+        body: extras
       });
       const data = await resp.json();
       if (data.ok) {

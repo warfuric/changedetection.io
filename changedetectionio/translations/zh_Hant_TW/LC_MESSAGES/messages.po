@@ -1077,6 +1077,11 @@ msgid ""
 msgstr "AI / LLM 是透過環境變數（<code>LLM_MODEL=%(model)s</code>%(api_base)s）設定的。請移除 <code>LLM_MODEL</code> 環境變數以改為透過此表單進行設定。"
 
 #: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+#, python-format
+msgid "Extra request headers/body are set via %(names)s."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
 msgid "select a provider"
 msgstr "選擇供應商"
 
@@ -1104,6 +1109,22 @@ msgstr ""
 "推理模型（Qwen3、DeepSeek-R1、Gemma 3 等）會在給出最終答案之前輸出思考鏈（Chain-of-thought）。此乘數會放大該端點的每個 <code>max_tokens</code> "
 "上限，以留出推理空間。預設為 %(default)s；如果回應遭到截斷或為空，請將其調高；如果您希望在付費端點上設定更嚴格的限制，請將其調低（最低至 1x）。套用至 Ollama 和與 OpenAI 相容的端點 — "
 "其他雲端供應商（OpenAI、Anthropic、Gemini）則保持其原本嚴格的上限。"
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid "Extra request headers and body"
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid ""
+"Sent with every AI request, one <code>Name: value</code> per line. For gateways that need a session or routing "
+"header, or a token of their own. Unlike the API key, values are shown on this page. Removed with the provider."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid ""
+"A JSON object merged into every AI request body, for provider-specific options such as turning a model's default "
+"reasoning off."
+msgstr ""
 
 #: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
 msgid "Load available models"
@@ -3698,6 +3719,14 @@ msgstr "API 基礎 URL"
 #: changedetectionio/forms.py
 msgid "Token multiplier for local reasoning models"
 msgstr "本地推理模型的權杖乘數"
+
+#: changedetectionio/forms.py
+msgid "Extra request headers"
+msgstr ""
+
+#: changedetectionio/forms.py
+msgid "Extra request body (JSON)"
+msgstr ""
 
 #: changedetectionio/forms.py
 msgid "Default AI Change Summary prompt"

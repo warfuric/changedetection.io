@@ -453,6 +453,43 @@ class StringDictKeyValue(StringField):
         if errors:
             raise ValidationError("Invalid input:\n" + "\n".join(errors))
 
+class LLMExtraHeadersField(TextAreaField):
+    """'Name: value' lines -> {name: value}. Absent from the POST keeps the stored value."""
+
+    def _value(self):
+        if self.raw_data:
+            return self.raw_data[0]
+        return ''.join(f"{k}: {v}\r\n" for k, v in (self.data or {}).items())
+
+    def process_formdata(self, valuelist):
+        if not valuelist:
+            return
+        from changedetectionio.llm.extras import parse_header_lines
+        try:
+            self.data = parse_header_lines(valuelist[0])
+        except ValueError as e:
+            raise ValidationError(str(e))
+
+
+class LLMExtraBodyField(TextAreaField):
+    """A JSON object textarea -> dict; blank is {}. Absent from the POST keeps the stored value."""
+
+    def _value(self):
+        if self.raw_data:
+            return self.raw_data[0]
+        import json
+        return json.dumps(self.data, indent=2) if self.data else ''
+
+    def process_formdata(self, valuelist):
+        if not valuelist:
+            return
+        from changedetectionio.llm.extras import parse_body
+        try:
+            self.data = parse_body(valuelist[0])
+        except ValueError as e:
+            raise ValidationError(str(e))
+
+
 class ValidateContentFetcherIsReady(object):
     """
     Validates that anything that looks like a regex passes as a regex
@@ -1314,6 +1351,22 @@ class globalSettingsLLMForm(Form):
         validators=[validators.Optional(), validators.NumberRange(min=1, max=20)],
         default=5,
         render_kw={"placeholder": "5", "style": "width: 6em;"},
+    )
+    extra_headers = LLMExtraHeadersField(
+        _l('Extra request headers'),
+        render_kw={
+            "rows": "3",
+            "placeholder": "x-session-id: changedetection",
+            "style": "width: 24em;",
+        },
+    )
+    extra_body = LLMExtraBodyField(
+        _l('Extra request body (JSON)'),
+        render_kw={
+            "rows": "3",
+            "placeholder": '{"thinking": {"type": "disabled"}}',
+            "style": "width: 24em; font-family: monospace;",
+        },
     )
     change_summary_default = TextAreaField(
         _l('Default AI Change Summary prompt'),

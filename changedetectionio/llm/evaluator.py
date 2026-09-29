@@ -13,6 +13,10 @@ Environment variable overrides (take priority over datastore settings):
   LLM_MODEL    — model string (e.g. "gpt-4o-mini", "ollama/llama3.2")
   LLM_API_KEY  — API key for cloud providers
   LLM_API_BASE — base URL for local/custom endpoints (e.g. http://localhost:11434)
+  LLM_EXTRA_HEADERS — JSON object of extra HTTP headers sent with every LLM request
+                      (e.g. '{"x-session-id": "changedetection"}'). Used with LLM_MODEL.
+  LLM_EXTRA_BODY    — JSON object merged into every LLM request body
+                      (e.g. '{"thinking": {"type": "disabled"}}'). Used with LLM_MODEL.
   LLM_TIMEOUT       — per-request timeout in seconds (default 300). When set, it
                       applies to every endpoint (a single hard ceiling).
   LLM_LOCAL_TIMEOUT — timeout in seconds for local/self-hosted endpoints (api_base
@@ -20,6 +24,7 @@ Environment variable overrides (take priority over datastore settings):
                       unless LLM_TIMEOUT is set. See resolve_llm_timeout().
 """
 
+import copy
 import hashlib
 import os
 from dataclasses import dataclass
@@ -29,6 +34,7 @@ from loguru import logger
 from changedetectionio.strtobool import strtobool
 
 from . import client as llm_client
+from .extras import env_headers, env_json_object
 from .prompt_builder import (
     build_change_summary_prompt, build_change_summary_system_prompt,
     build_eval_prompt, build_eval_system_prompt,
@@ -376,7 +382,8 @@ def get_llm_config(datastore) -> dict | None:
     Return LLM config dict or None if not configured.
 
     Resolution order (first non-empty model wins):
-      1. Environment variables: LLM_MODEL, LLM_API_KEY, LLM_API_BASE
+      1. Environment variables: LLM_MODEL, LLM_API_KEY, LLM_API_BASE,
+         LLM_EXTRA_HEADERS, LLM_EXTRA_BODY
       2. Datastore settings (set via UI)
     """
     if is_llm_features_disabled():
@@ -388,6 +395,8 @@ def get_llm_config(datastore) -> dict | None:
             'model': env_model,
             'api_key': os.getenv('LLM_API_KEY', '').strip(),
             'api_base': os.getenv('LLM_API_BASE', '').strip(),
+            'extra_headers': env_headers('LLM_EXTRA_HEADERS'),
+            'extra_body': env_json_object('LLM_EXTRA_BODY'),
         }
 
     # 2. Datastore settings
@@ -395,6 +404,20 @@ def get_llm_config(datastore) -> dict | None:
     if not cfg.get('model'):
         return None
     return cfg
+
+
+def request_extras(cfg: dict, thinking_budget: int) -> dict:
+    """
+    extra_headers / extra_body kwargs for llm_client.completion().
+
+    The configured body is shallow-merged over the Gemini thinking body, so a top-level key
+    set by the operator (e.g. generationConfig) replaces it whole. Deep-copied: completion()
+    pops keys from extra_body when retrying, and cfg may be the live datastore dict.
+    """
+    body = {**(_thinking_extra_body(cfg.get('model') or '', thinking_budget) or {}),
+            **copy.deepcopy(cfg.get('extra_body') or {})}
+    headers = dict(cfg.get('extra_headers') or {})
+    return {'extra_headers': headers or None, 'extra_body': body or None}
 
 
 def llm_configured_via_env() -> bool:
@@ -613,7 +636,7 @@ def run_setup(watch, datastore, snapshot_text: str) -> None:
             api_base=cfg.get('api_base'),
             timeout=resolve_llm_timeout(cfg),
             max_tokens=apply_local_token_multiplier(JSON_RESPONSE_MAX_TOKENS, cfg),
-            extra_body=_thinking_extra_body(cfg['model'], settings.thinking_budget),
+            **request_extras(cfg, settings.thinking_budget),
             debug=settings.debug,
         )
         _check_token_budget(watch, cfg, tokens)
@@ -786,7 +809,6 @@ def summarise_change(watch, datastore, diff: str, current_snapshot: str = '') ->
     )
 
     settings = get_llm_settings(datastore)
-    _extra_body = _thinking_extra_body(cfg['model'], settings.thinking_budget)
 
     try:
         _resp = llm_client.completion(
@@ -802,7 +824,7 @@ def summarise_change(watch, datastore, diff: str, current_snapshot: str = '') ->
                 _summary_max_tokens(diff, max_cap=settings.max_summary_tokens),
                 cfg,
             ),
-            extra_body=_extra_body,
+            **request_extras(cfg, settings.thinking_budget),
             debug=settings.debug,
         )
         raw, tokens = _resp[0], _resp[1]
@@ -867,7 +889,7 @@ def preview_extract(watch, datastore, content: str) -> dict | None:
             api_base=cfg.get('api_base'),
             timeout=resolve_llm_timeout(cfg),
             max_tokens=apply_local_token_multiplier(JSON_RESPONSE_MAX_TOKENS, cfg),
-            extra_body=_thinking_extra_body(cfg['model'], settings.thinking_budget),
+            **request_extras(cfg, settings.thinking_budget),
             debug=settings.debug,
         )
         accumulate_global_tokens(datastore, tokens, model=cfg['model'])
@@ -954,7 +976,7 @@ def evaluate_change(watch, datastore, diff: str, current_snapshot: str = '') -> 
             api_base=cfg.get('api_base'),
             timeout=resolve_llm_timeout(cfg),
             max_tokens=apply_local_token_multiplier(JSON_RESPONSE_MAX_TOKENS, cfg),
-            extra_body=_thinking_extra_body(cfg['model'], settings.thinking_budget),
+            **request_extras(cfg, settings.thinking_budget),
             debug=settings.debug,
         )
         raw, tokens = _resp[0], _resp[1]

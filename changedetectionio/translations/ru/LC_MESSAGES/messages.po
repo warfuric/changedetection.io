@@ -1137,6 +1137,11 @@ msgstr ""
 "переменную среды <code>LLM_MODEL</code>, чтобы настроить ее с помощью этой формы."
 
 #: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+#, python-format
+msgid "Extra request headers/body are set via %(names)s."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
 msgid "select a provider"
 msgstr "выберите провайдера"
 
@@ -1169,6 +1174,22 @@ msgstr ""
 "(до 1x), если вы хотите более жесткие ограничения для платной конечной точки. Применительно к Ollama и конечным "
 "точкам, совместимым с OpenAI: другие облачные провайдеры (OpenAI, Anthropic, Gemini) сохраняют свои первоначальные "
 "жесткие ограничения."
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid "Extra request headers and body"
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid ""
+"Sent with every AI request, one <code>Name: value</code> per line. For gateways that need a session or routing "
+"header, or a token of their own. Unlike the API key, values are shown on this page. Removed with the provider."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid ""
+"A JSON object merged into every AI request body, for provider-specific options such as turning a model's default "
+"reasoning off."
+msgstr ""
 
 #: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
 msgid "Load available models"
@@ -3805,6 +3826,14 @@ msgstr "Базовый URL-адрес API"
 #: changedetectionio/forms.py
 msgid "Token multiplier for local reasoning models"
 msgstr "Множитель токена для локальных моделей рассуждений"
+
+#: changedetectionio/forms.py
+msgid "Extra request headers"
+msgstr ""
+
+#: changedetectionio/forms.py
+msgid "Extra request body (JSON)"
+msgstr ""
 
 #: changedetectionio/forms.py
 msgid "Default AI Change Summary prompt"

@@ -135,6 +135,8 @@ def construct_llm_blueprint(datastore: ChangeDetectionStore):
     def llm_test():
         from flask import request
         from changedetectionio.llm.client import completion
+        import copy
+        from changedetectionio.llm.extras import parse_body, parse_header_lines
         from changedetectionio.validate_url import is_llm_api_base_safe
 
         # Pull stored config as the fallback, then override with anything the
@@ -183,6 +185,23 @@ def construct_llm_blueprint(datastore: ChangeDetectionStore):
                 "Refusing to send the stored API key to a different endpoint."
             )}), 400
 
+        # The form's current extras when sent (in the POST body, so a token stays out of
+        # access logs), else the stored ones — but only for the saved api_base, since a
+        # header can carry a gateway token (same guard as the key above).
+        use_stored = api_base == stored_api_base
+        try:
+            if 'extra_headers' in request.form:
+                extra_headers = parse_header_lines(request.form['extra_headers'])
+            else:
+                extra_headers = dict(stored.get('extra_headers') or {}) if use_stored else {}
+            if 'extra_body' in request.form:
+                extra_body = parse_body(request.form['extra_body'])
+            else:
+                extra_body = copy.deepcopy(stored.get('extra_body') or {}) if use_stored else {}
+        except ValueError as e:
+            logger.warning(f"LLM connection test refused: invalid extra headers/body ({e})")
+            return jsonify({'ok': False, 'error': str(e)}), 400
+
         try:
             logger.debug(f"LLM connection test: sending test prompt to model={model!r}")
             # Reuse the same multiplier path the production calls use, so cloud providers
@@ -203,6 +222,8 @@ def construct_llm_blueprint(datastore: ChangeDetectionStore):
                 api_base=api_base or None,
                 timeout=resolve_llm_timeout(llm_cfg),
                 max_tokens=apply_local_token_multiplier(200, llm_cfg),
+                extra_headers=extra_headers or None,
+                extra_body=extra_body or None,
                 debug=get_llm_settings(datastore).debug,
             )
             reply = text.strip()

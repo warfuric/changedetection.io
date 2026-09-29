@@ -1079,6 +1079,11 @@ msgstr ""
 "변수를 제거하세요."
 
 #: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+#, python-format
+msgid "Extra request headers/body are set via %(names)s."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
 msgid "select a provider"
 msgstr "프로바이더 선택"
 
@@ -1102,6 +1107,22 @@ msgid ""
 " if responses come back truncated or empty, lower it (down to 1x) if you want tighter limits on a paid endpoint. "
 "Applied to Ollama and OpenAI-compatible endpoints — other cloud providers (OpenAI, Anthropic, Gemini) keep their "
 "original tight caps."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid "Extra request headers and body"
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid ""
+"Sent with every AI request, one <code>Name: value</code> per line. For gateways that need a session or routing "
+"header, or a token of their own. Unlike the API key, values are shown on this page. Removed with the provider."
+msgstr ""
+
+#: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
+msgid ""
+"A JSON object merged into every AI request body, for provider-specific options such as turning a model's default "
+"reasoning off."
 msgstr ""
 
 #: changedetectionio/blueprint/settings/templates/settings_llm_tab.html
@@ -3696,6 +3717,14 @@ msgstr "API 기본 URL"
 
 #: changedetectionio/forms.py
 msgid "Token multiplier for local reasoning models"
+msgstr ""
+
+#: changedetectionio/forms.py
+msgid "Extra request headers"
+msgstr ""
+
+#: changedetectionio/forms.py
+msgid "Extra request body (JSON)"
 msgstr ""
 
 #: changedetectionio/forms.py

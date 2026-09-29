@@ -4,6 +4,7 @@ Keeps litellm import isolated so the rest of the codebase doesn't depend on it d
 and makes the call easy to mock in tests.
 """
 
+import contextvars
 import logging
 import os
 
@@ -40,6 +41,11 @@ _NO_TEMPERATURE_MODEL_KEYWORDS = ('flash-lite', 'thinking-exp', 'o1', 'o3', 'o4'
 DEFAULT_RETRIES = 3
 
 
+# Extra-header values of this thread's current call. litellm's debug output prints
+# extra_headers unmasked (only header *names* like Authorization get masked).
+_REDACT_VALUES = contextvars.ContextVar('_REDACT_VALUES', default=())
+
+
 class _LoguruInterceptHandler(logging.Handler):
     # Routes litellm's stdlib log records through loguru so debug output
     # uses the same format/sink as the rest of the app.
@@ -48,7 +54,10 @@ class _LoguruInterceptHandler(logging.Handler):
             level = logger.level(record.levelname).name
         except (ValueError, AttributeError):
             level = record.levelno
-        logger.opt(exception=record.exc_info).log(level, record.getMessage())
+        message = record.getMessage()
+        for value in _REDACT_VALUES.get():
+            message = message.replace(value, '****')
+        logger.opt(exception=record.exc_info).log(level, message)
 
 
 _debug_installed = False
@@ -84,6 +93,7 @@ def completion(  # noqa: C901
     timeout: int = DEFAULT_TIMEOUT,
     max_tokens: int = None,
     extra_body: dict = None,
+    extra_headers: dict = None,
     debug: bool = False,
 ) -> tuple[str, int, int, int]:
     """
@@ -94,6 +104,9 @@ def completion(  # noqa: C901
 
     timeout: seconds for the request. Local endpoints get a longer value than cloud —
     see evaluator.resolve_llm_timeout().
+
+    extra_headers: extra HTTP headers sent with the request, for gateways that need
+    one (a session/routing id, a gateway token). See evaluator.request_extras().
     """
     try:
         import litellm
@@ -121,6 +134,9 @@ def completion(  # noqa: C901
         kwargs['api_base'] = api_base
     if extra_body:
         kwargs['extra_body'] = extra_body
+    if extra_headers:
+        kwargs['extra_headers'] = extra_headers
+    _REDACT_VALUES.set(tuple(v for v in (extra_headers or {}).values() if v))
 
     _retryable = (litellm.Timeout, litellm.APIConnectionError)
 
